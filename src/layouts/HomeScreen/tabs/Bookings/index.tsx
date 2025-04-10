@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,36 +6,57 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import database from '@react-native-firebase/database';
+import { useUser } from '../../../../context/UserContext';
 
 const BookingsScreen = () => {
-  const route = useRoute();
+  const { userDetails } = useUser(); // Access user details from context
+  const phoneNumber = userDetails?.phoneNumber; // Get phone number
   const navigation = useNavigation();
+  const [bookingDetails, setBookingDetails] = useState(null); // State to store booking details
 
-  // Ensure bookingDetails has a default value to prevent undefined errors
-  const bookingDetails = route.params?.bookingDetails || { cart: [] };
+  // Fetch booking details from Realtime Database
+  useEffect(() => {
+    if (phoneNumber) {
+      database()
+        .ref(`/bookings/${phoneNumber}`)
+        .once('value')
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            setBookingDetails(snapshot.val());
+          } else {
+            setBookingDetails(null);
+          }
+        })
+        .catch((error) => {
+          Alert.alert('Error', 'Failed to fetch booking details.');
+          console.error(error);
+        });
+    } else {
+      Alert.alert('Error', 'User phone number not available.');
+    }
+  }, [phoneNumber]);
 
-  const handleCardPress = (item) => {
-    const platformCharges = 20; // Example platform charges
-    const discount = 30; // Example discount amount
-    const additionalCharges = 10; // Example additional charges
-    const itemTotal = parseFloat(item.price.split('₹')[1]) * item.quantity;
-    const total = itemTotal + platformCharges + additionalCharges - discount;
-    const advance = 50; // Example advance amount
-    const cashOnDelivery = total - advance;
-
-    const paymentSummary = {
-      item,
-      itemTotal,
-      platformCharges,
-      discount,
-      additionalCharges,
-      total,
-      advance,
-      cashOnDelivery,
-    };
-    navigation.navigate('BookingDetailsScreen', { paymentSummary });
+  // Handle delete booking
+  const handleDeleteBooking = () => {
+    if (phoneNumber) {
+      database()
+        .ref(`/bookings/${phoneNumber}`)
+        .remove()
+        .then(() => {
+          Alert.alert('Success', 'Booking deleted successfully!');
+          setBookingDetails(null); // Clear the booking details from state
+        })
+        .catch((error) => {
+          Alert.alert('Error', 'Failed to delete booking.');
+          console.error(error);
+        });
+    } else {
+      Alert.alert('Error', 'User phone number not available.');
+    }
   };
 
   return (
@@ -50,20 +71,26 @@ const BookingsScreen = () => {
         <Text style={styles.heading}>Booking Details</Text>
       </View>
 
-      {bookingDetails.cart.length > 0 ? (
+      {bookingDetails ? (
         <View style={styles.card}>
           {bookingDetails.cart.map((item, index) => (
-            <TouchableOpacity key={item.id} onPress={() => handleCardPress(item)}>
-              <View key={item.id} style={styles.itemDetail}>
-                <Text style={styles.itemTitle}>{item.title}</Text>
-                <Text style={styles.itemDescription}>{item.description}</Text>
-                <Text style={styles.itemQuantity}>Quantity: {item.quantity}</Text>
-                <Text style={styles.itemPrice}>Price: {item.price}</Text>
-                <Text style={styles.itemRating}>Rating: {item.rating}</Text>
-                {index < bookingDetails.cart.length - 1 && <View style={styles.separator} />}
-              </View>
-            </TouchableOpacity>
+            <View key={index} style={styles.itemDetail}>
+              <Text style={styles.itemTitle}>{item.title}</Text>
+              <Text style={styles.itemDescription}>{item.description}</Text>
+              <Text style={styles.itemQuantity}>Quantity: {item.quantity}</Text>
+              <Text style={styles.itemPrice}>
+                Price: ₹{(parseFloat(item.price.split('₹')[1]) * item.quantity).toFixed(2)}
+              </Text>
+              {index < bookingDetails.cart.length - 1 && <View style={styles.separator} />}
+            </View>
           ))}
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalLabel}>Total Amount:</Text>
+            <Text style={styles.totalValue}>₹{bookingDetails.totalAmount.toFixed(2)}</Text>
+          </View>
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteBooking}>
+            <Text style={styles.deleteButtonText}>Delete Booking</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <Text style={styles.noDataText}>No bookings available</Text>
@@ -125,11 +152,6 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 5,
   },
-  itemRating: {
-    fontSize: 14,
-    color: '#000',
-    marginBottom: 5,
-  },
   separator: {
     height: 1,
     backgroundColor: '#ccc',
@@ -141,6 +163,33 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: 'gray',
     marginTop: 20,
+  },
+  totalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  totalValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  deleteButton: {
+    backgroundColor: '#ff4d4d',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

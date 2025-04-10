@@ -54,16 +54,8 @@ const OtpScreenTesting = () => {
       const snapshot = await database().ref(`/users/${phoneNumber}`).once('value');
       if (snapshot.exists()) {
         const userData = snapshot.val();
-        if (userData) {
-          userContext?.setUserDetails({
-            name: userData.name,
-            email: userData.email,
-            phoneNumber: userData.phoneNumber,
-          });
-          setPhoneNumber(userData.phoneNumber);
-        } else {
-          Alert.alert('Error', 'User details not found.');
-        }
+        userContext?.setUserDetails(userData); // Set user details in context
+        userContext?.setPhoneNumber(phoneNumber); // Set phoneNumber in context
       } else {
         Alert.alert('Error', 'User not registered.');
       }

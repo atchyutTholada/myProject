@@ -8,7 +8,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './style';
 import { useNavigation } from '@react-navigation/native';
 import database from '@react-native-firebase/database';
@@ -61,12 +61,14 @@ const salonServices = [
 ];
 
 const SalonForWomen = () => {
-  const { phoneNumber } = useUser(); // Access phone number from context
+  const { userDetails, fetchUserDetails } = useUser() || {}; // Access phone number from context
   const [modalVisible, setModalVisible] = useState(false); // State to control modal visibility
   const [selectedService, setSelectedService] = useState(null); // State to track the selected service
   const [cart, setCart] = useState([]); // State to track cart items
   const [showCartSummary, setShowCartSummary] = useState(false); // State to show/hide cart summary
   const navigation = useNavigation();
+
+  const phoneNumber = userDetails?.phoneNumber;
 
   // Function to handle adding a service to the cart
   const handleIncrement = (service) => {
@@ -149,8 +151,36 @@ const SalonForWomen = () => {
 
   // Function to navigate to the cart summary screen
   const handleViewCart = () => {
-    saveCartToDatabase(); // Save cart details to the database
-    navigation.navigate('PaymentSummary', { cart });
+    if (!phoneNumber) {
+      Alert.alert('Error', 'User phone number not available.');
+      return;
+    }
+
+    // Save cart details to the database
+    const cartDetails = {
+      totalAmount: getTotalAmount(),
+      items: cart.map((item) => ({
+        id: item.id,
+        title: item.title,
+        rating: item.rating,
+        price: item.price,
+        description: item.description,
+        image: item.image,
+        quantity: item.quantity,
+      })),
+    };
+
+    database()
+      .ref(`/carts/${phoneNumber}`)
+      .set(cartDetails)
+      .then(() => {
+        console.log('Cart details saved successfully!');
+        navigation.navigate('PaymentSummary'); // Navigate to PaymentSummary
+      })
+      .catch((error) => {
+        Alert.alert('Error', 'Failed to save cart details.');
+        console.error(error);
+      });
   };
 
   return (

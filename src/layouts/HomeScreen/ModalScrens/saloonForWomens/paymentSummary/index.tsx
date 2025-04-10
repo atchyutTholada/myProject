@@ -13,7 +13,8 @@ import database from '@react-native-firebase/database';
 import { useUser } from '../../../../../context/UserContext';
 
 const PaymentSummary = () => {
-  const { phoneNumber } = useUser(); // Access phone number from context
+  const { userDetails } = useUser(); // Access user details from context
+  const phoneNumber = userDetails?.phoneNumber; // Get phone number
   const navigation = useNavigation();
   const [cart, setCart] = useState([]); // State to store cart items
   const [totalAmount, setTotalAmount] = useState(0); // State to store total amount
@@ -39,6 +40,7 @@ const PaymentSummary = () => {
         })
         .catch((error) => {
           Alert.alert('Error', 'Failed to fetch cart details.');
+          console.error(error);
         });
     } else {
       Alert.alert('Error', 'User phone number not available.');
@@ -69,10 +71,11 @@ const PaymentSummary = () => {
         .set(bookingDetails)
         .then(() => {
           Alert.alert('Success', 'Booking confirmed successfully!');
-          navigation.navigate('BookingsScreen', { bookingDetails });
+          navigation.navigate('BookingsScreen'); // Navigate to BookingsScreen
         })
         .catch((error) => {
           Alert.alert('Error', 'Failed to confirm booking. Please try again.');
+          console.error(error);
         });
     } else {
       Alert.alert('Error', 'User phone number not available.');
@@ -95,7 +98,6 @@ const PaymentSummary = () => {
           <View style={styles.headerContainer}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Image
-                // source={require('../../../../../../../assests/Images/PersonalServiceImages/Back-Arrow.png')}
                 source={require('../../../../../assests/Images/PersonalServiceImages/Back-Arrow.png')}
                 style={styles.backButton}
               />
@@ -122,41 +124,18 @@ const PaymentSummary = () => {
           </View>
         </View>
         <View style={styles.orderSummaryContainer}>
-          <Text style={styles.orderSummaryHeading}>Order summary</Text>
+          <Text style={styles.orderSummaryHeading}>Order Summary</Text>
+          {cart.map((item, index) => (
+            <View key={index} style={styles.orderSummaryRow}>
+              <Text style={styles.orderSummaryLabel}>{item.title}</Text>
+              <Text style={styles.orderSummaryValue}>
+                ₹{(parseFloat(item.price.split('₹')[1]) * item.quantity).toFixed(2)}
+              </Text>
+            </View>
+          ))}
           <View style={styles.orderSummaryRow}>
-            <Text
-              style={styles.orderSummaryLabel}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              Subtotal
-            </Text>
-            <Text style={styles.orderSummaryValue}>
-              ₹{totalAmount.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.orderSummaryRow}>
-            <Text style={styles.orderSummaryLabel}>Platform Charges</Text>
-            <Text style={styles.orderSummaryValue}>
-              ₹{platformCharges.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.orderSummaryRow}>
-            <Text style={styles.orderSummaryLabel}>Additional Charges</Text>
-            <Text style={styles.orderSummaryValue}>
-              ₹{additionalCharges.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.orderSummaryRow}>
-            <Text style={styles.orderSummaryLabel}>Discount</Text>
-            <Text style={styles.orderSummaryValue}>
-              -₹{(totalAmount * discountRate).toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.orderSummaryRow}>
-            <Text style={styles.orderSummaryLabel}>Total</Text>
-            <Text style={styles.orderSummaryValue}>
-              ₹{getTotalAmount().toFixed(2)}
-            </Text>
+            <Text style={styles.orderSummaryLabel}>Total Amount</Text>
+            <Text style={styles.orderSummaryValue}>₹{totalAmount.toFixed(2)}</Text>
           </View>
         </View>
         <View style={styles.paymentMethodContainer}>

@@ -344,9 +344,11 @@ const HomePage = () => {
         }}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Replace "X" button with a small line */}
+            {/* Replace "___" line with a TouchableOpacity */}
             <View style={styles.modalHeader}>
-              <View style={styles.modalLine} />
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <View style={styles.modalLine} />
+              </TouchableOpacity>
             </View>
             <View style={styles.modalImageContainer}>
               <TouchableOpacity
@@ -385,7 +387,6 @@ const HomePage = () => {
                 onPress={() =>
                   handleModalImagePress('MakeUpStylingStudioScreen')
                 }>
-                  
                 <Image
                   source={require('../../assests/Images/PersonalServiceImages/MakeUpStudio.jpg')}
                   style={styles.modalImage}

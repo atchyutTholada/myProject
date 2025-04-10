@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useContext} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,68 +8,41 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import database from '@react-native-firebase/database'; // Import Firebase Realtime Database
-import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'react-native-image-picker';
-import {useUser} from '../../../../context/UserContext';
+import { useUser } from '../../../../context/UserContext';
 import { useAuth } from '../../../../context/AuthContext';
 
 const AccountScreen = () => {
   const navigation = useNavigation();
-  const route = useRoute();
-  const {name, email, phoneNumber} = route.params || {};
-  // const {phoneNumber} = useUser(); // Access phoneNumber from context
-
-  const {logout} = useAuth();
+  const { userDetails, fetchUserDetails } = useUser() || {}; // Access userDetails and fetchUserDetails from context
+  const { logout } = useAuth();
 
   const [profileImage, setProfileImage] = useState(
     require('../../../../assests/Images/PersonalServiceImages/Profile.png'),
   );
 
-  const userDetails = useUser(); // Access user details from context
-  const [user, setUser] = useState({
-    name: name,
-    email: email,
-    phoneNumber:phoneNumber,
-  });
-
   useEffect(() => {
-    const fetchUserDetails = async () => {
-      if (phoneNumber) {
-        const snapshot = await database()
-          .ref(`/users/${phoneNumber}`)
-          .once('value');
-        if (snapshot.exists()) {
-          const userData = snapshot.val();
-          setUser(userData);
-          if (userData.profileImage) {
-            setProfileImage({uri: userData.profileImage});
-          }
-        } else {
-          Alert.alert('Error', 'User details not found.');
+    const loadUserDetails = async () => {
+      if (userDetails?.phoneNumber) {
+        if (fetchUserDetails) {
+          await fetchUserDetails(userDetails.phoneNumber); // Fetch user details using phoneNumber
         }
+      } else {
+        console.warn('Phone number is not available in userDetails.');
       }
     };
-
-    fetchUserDetails();
-  }, [phoneNumber]);
-
-  // Update profile data if changes are passed from EditProfile
-  React.useEffect(() => {
-    if (route.params?.updatedProfile) {
-      const {updatedProfile} = route.params;
-      setUser(prevUser => ({
-        ...prevUser,
-        ...updatedProfile,
-      }));
-      if (updatedProfile.profileImage) {
-        setProfileImage({uri: updatedProfile.profileImage});
-      }
+    loadUserDetails();
+  }, [userDetails?.phoneNumber]);
+  
+  useEffect(() => {
+    if (userDetails?.profileImage) {
+      setProfileImage({ uri: userDetails.profileImage });
     }
-  }, [route.params?.updatedProfile]);
+  }, [userDetails?.profileImage]);
 
   const handleLogout = async () => {
-    await logout(); // Clear authentication state
+    await logout();
     Alert.alert('Logged Out', 'You have been logged out.');
     navigation.reset({
       index: 0,
@@ -91,29 +64,14 @@ const AccountScreen = () => {
       } else if (response.errorCode) {
         Alert.alert('Error', 'Something went wrong: ' + response.errorMessage);
       } else if (response.assets && response.assets.length > 0) {
-        const source = {uri: response.assets[0].uri};
+        const source = { uri: response.assets[0].uri };
         setProfileImage(source); // Update the profile image locally
-
-        // Save the profile image to Firebase Realtime Database
-        try {
-          if (phoneNumber) {
-            await database().ref(`/users/${phoneNumber}`).update({
-              profileImage: source.uri,
-            });
-            Alert.alert('Success', 'Profile image updated successfully!');
-          }
-        } catch (error) {
-          Alert.alert(
-            'Error',
-            'Failed to update profile image in the database.',
-          );
-        }
       }
     });
   };
 
   const handleEditProfile = () => {
-    navigation.navigate('EditProfile', {user, profileImage});
+    navigation.navigate('EditProfile', { userDetails, profileImage });
   };
 
   const handlePassword = () => {
@@ -125,7 +83,7 @@ const AccountScreen = () => {
   };
 
   const handleAccountLimits = () => {
-    navigation.navigate('AccountsScreenLimits')
+    navigation.navigate('AccountsScreenLimits');
   };
 
   const handleBiometrics = () => {
@@ -143,7 +101,7 @@ const AccountScreen = () => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Image
               source={require('../../../../assests/Images/PersonalServiceImages/back-button.png')}
-              style={[styles.backButton, {tintColor: '#fff'}]} // Change to white color
+              style={[styles.backButton, { tintColor: '#fff' }]} // Change to white color
             />
           </TouchableOpacity>
           <Text style={styles.heading}>My Profile</Text>
@@ -162,9 +120,15 @@ const AccountScreen = () => {
           </TouchableOpacity>
         </View>
         <View style={styles.profileDetails}>
-          <Text style={styles.profileName}>{user.name}</Text>
-          <Text style={styles.profileEmail}>{user.email}</Text>
-          <Text style={styles.profilePhone}>{user.phoneNumber}</Text>
+          <Text style={styles.profileName}>
+            {userDetails?.name || 'Loading...'}
+          </Text>
+          <Text style={styles.profileEmail}>
+            {userDetails?.email || 'Loading...'}
+          </Text>
+          <Text style={styles.profilePhone}>
+            {userDetails?.phoneNumber || 'Loading...'}
+          </Text>
         </View>
       </View>
       <View style={styles.settingsContainer}>
@@ -310,7 +274,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   settingsHeading: {

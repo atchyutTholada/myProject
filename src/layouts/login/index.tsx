@@ -75,7 +75,7 @@ const LoginScreen = ({navigation, route}) => {
         lastOtpRequestTime = currentTime;
         Alert.alert('OTP Sent', `An OTP has been sent to +91 ${phoneNumber}`);
         login(); // Mark user as authenticated
-        navigation.navigate('OtpScreen', {confirm: confirmation, phoneNumber});
+        navigation.navigate('OtpScreen', {confirm: confirmation, phoneNumber}); // Pass phoneNumber to OtpScreen
       } catch (error) {
         // Handle errors
         if (error.code === 'auth/too-many-requests') {

@@ -4,6 +4,7 @@ import {
   View, Text, TextInput, TouchableOpacity, Alert, StyleSheet 
 } from "react-native";
 import firestore from "@react-native-firebase/firestore"; // Import Firestore
+import database from '@react-native-firebase/database'; // Import Realtime Database
 import { useNavigation } from "@react-navigation/native";
 
 const NewRegistration = () => {
@@ -25,6 +26,14 @@ const NewRegistration = () => {
         email,
         phoneNumber,
       });
+
+      // Save user details to Realtime Database
+      await database().ref(`/users/${phoneNumber}`).set({
+        name,
+        email,
+        phoneNumber,
+      });
+
       Alert.alert("Success", "Registration successful!");
       navigation.navigate("Login", { phoneNumber }); // Pass phone number to Login Screen
     } catch (error) {
